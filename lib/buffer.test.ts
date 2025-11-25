@@ -1,17 +1,13 @@
 /**
  * Buffer API tests
+ *
+ * Test Isolation Pattern:
+ * Uses createIsolatedTerminal() to ensure each test gets its own WASM instance.
  */
 
 import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
-import { Terminal } from './terminal';
-
-/**
- * Helper to open terminal and wait for WASM to be ready.
- */
-async function openAndWaitForReady(term: Terminal, container: HTMLElement): Promise<void> {
-  term.open(container);
-  await new Promise<void>((resolve) => term.onReady(resolve));
-}
+import type { Terminal } from './terminal';
+import { createIsolatedTerminal } from './test-helpers';
 
 describe('Buffer API', () => {
   let term: Terminal | null = null;
@@ -22,8 +18,8 @@ describe('Buffer API', () => {
     if (typeof document !== 'undefined') {
       container = document.createElement('div');
       document.body.appendChild(container);
-      term = new Terminal({ cols: 80, rows: 24 });
-      await openAndWaitForReady(term, container);
+      term = await createIsolatedTerminal({ cols: 80, rows: 24 });
+      term.open(container);
     }
   });
 
