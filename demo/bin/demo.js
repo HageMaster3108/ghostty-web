@@ -394,17 +394,17 @@ function getClientInfo(req) {
   // Support for reverse proxies (ngrok, nginx, etc.)
   const forwardedHost = req.headers['x-forwarded-host'];
   const forwardedProto = req.headers['x-forwarded-proto'];
-  
+
   const host = forwardedHost || req.headers.host;
   const protocol = forwardedProto || (req.connection.encrypted ? 'https' : 'http');
-  
+
   return { host, protocol };
 }
 
 // Handle HTTP upgrade for WebSocket connections
 httpServer.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
-  
+
   if (url.pathname === '/ws') {
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit('connection', ws, req);
