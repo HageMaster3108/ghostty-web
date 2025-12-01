@@ -23,7 +23,6 @@ const __dirname = path.dirname(__filename);
 
 const DEV_MODE = process.argv.includes('--dev');
 const HTTP_PORT = process.env.PORT || (DEV_MODE ? 8000 : 8080);
-const WS_PORT = 3001;
 
 // ============================================================================
 // Locate ghostty-web assets
@@ -239,8 +238,9 @@ const HTML_TEMPLATE = `<!doctype html>
         statusText.textContent = text;
       }
 
-      // Connect to WebSocket PTY server
-      const wsUrl = 'ws://' + window.location.hostname + ':${WS_PORT}/ws?cols=' + term.cols + '&rows=' + term.rows;
+      // Connect to WebSocket PTY server (use same origin as HTTP server)
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = protocol + '//' + window.location.host + '/ws?cols=' + term.cols + '&rows=' + term.rows;
       let ws;
 
       function connect() {
@@ -386,8 +386,33 @@ function createPtySession(cols, rows) {
   return ptyProcess;
 }
 
-// WebSocket server using ws package
-const wss = new WebSocketServer({ port: WS_PORT, path: '/ws' });
+// WebSocket server attached to HTTP server (same port)
+const wss = new WebSocketServer({ noServer: true });
+
+// Helper to extract real client info from X-Forwarded-* headers
+function getClientInfo(req) {
+  // Support for reverse proxies (ngrok, nginx, etc.)
+  const forwardedHost = req.headers['x-forwarded-host'];
+  const forwardedProto = req.headers['x-forwarded-proto'];
+  
+  const host = forwardedHost || req.headers.host;
+  const protocol = forwardedProto || (req.connection.encrypted ? 'https' : 'http');
+  
+  return { host, protocol };
+}
+
+// Handle HTTP upgrade for WebSocket connections
+httpServer.on('upgrade', (req, socket, head) => {
+  const url = new URL(req.url, `http://${req.headers.host}`);
+  
+  if (url.pathname === '/ws') {
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      wss.emit('connection', ws, req);
+    });
+  } else {
+    socket.destroy();
+  }
+});
 
 wss.on('connection', (ws, req) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -474,7 +499,7 @@ function printBanner(url) {
   console.log('  🚀 ghostty-web demo server' + (DEV_MODE ? ' (dev mode)' : ''));
   console.log('═'.repeat(60));
   console.log(`\n  📺 Open: ${url}`);
-  console.log(`  📡 WebSocket PTY: ws://localhost:${WS_PORT}/ws`);
+  console.log(`  📡 WebSocket PTY: same endpoint /ws`);
   console.log(`  🐚 Shell: ${getShell()}`);
   console.log(`  📁 Home: ${homedir()}`);
   if (DEV_MODE) {
