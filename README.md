@@ -8,6 +8,8 @@
 - WASM-compiled parser from Ghostty—the same code that runs the native app
 - Zero runtime dependencies, ~400KB WASM bundle
 
+Originally created for [Mux](https://github.com/coder/mux) (a desktop app for isolated, parallel agentic development), but designed to be used anywhere.
+
 ## Try It
 
 ```bash
