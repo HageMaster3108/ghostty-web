@@ -389,23 +389,13 @@ function createPtySession(cols, rows) {
 // WebSocket server attached to HTTP server (same port)
 const wss = new WebSocketServer({ noServer: true });
 
-// Helper to extract real client info from X-Forwarded-* headers
-function getClientInfo(req) {
-  // Support for reverse proxies (ngrok, nginx, etc.)
-  const forwardedHost = req.headers['x-forwarded-host'];
-  const forwardedProto = req.headers['x-forwarded-proto'];
-
-  const host = forwardedHost || req.headers.host;
-  const protocol = forwardedProto || (req.connection.encrypted ? 'https' : 'http');
-
-  return { host, protocol };
-}
-
 // Handle HTTP upgrade for WebSocket connections
 httpServer.on('upgrade', (req, socket, head) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   if (url.pathname === '/ws') {
+    // In production, consider validating req.headers.origin to prevent CSRF
+    // For development/demo purposes, we allow all origins
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit('connection', ws, req);
     });

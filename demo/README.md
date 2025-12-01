@@ -36,8 +36,10 @@ Then open http://localhost:8080 in your browser.
 The server now supports reverse proxies like ngrok, nginx, and others by:
 
 - Serving WebSocket on the same HTTP port (no separate port needed)
-- Respecting X-Forwarded-Host and X-Forwarded-Proto headers
 - Using relative WebSocket URLs on the client side
+- Automatic protocol detection (HTTP/HTTPS, WS/WSS)
+
+This means the WebSocket connection automatically adapts to use the same protocol and host as the HTTP connection, making it work seamlessly through any reverse proxy.
 
 ### Example with ngrok
 
